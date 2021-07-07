@@ -1,0 +1,89 @@
+#include <Servo.h>
+#include <LiquidCrystal_I2C.h>
+
+int lcdColumns = 16;
+int lcdRows = 2;
+
+LiquidCrystal_I2C lcd(0x27, lcdColumns, lcdRows);  
+
+Servo servo;
+Servo servo2;
+
+int seconds = 0;
+const int buzzer =  4;
+int led = 13;
+
+int door = 12; 
+int sensor = 13;
+int okno = 2;
+
+void setup() 
+{
+  lcd.init();                      
+  lcd.backlight();
+  pinMode(led, OUTPUT);
+  pinMode(buzzer, OUTPUT);
+  
+  pinMode(okno, OUTPUT);
+  pinMode(sensor, INPUT);
+  servo.attach(okno);
+  servo2.attach(door);
+  
+  Serial.begin(9600);
+}
+ 
+void loop() 
+{
+  long state = digitalRead(sensor);
+  if(state == HIGH) {
+    servo2.write(0);
+    Serial.println("Motion detected!");
+  }
+  else {
+    servo2.write(90);
+    Serial.println("Motion absent!");
+  }
+  float sensorVoltage; 
+  float sensorValue;
+  sensorValue = analogRead(A0);
+  sensorVoltage = sensorValue/1024*5.0;
+  Serial.print("GAS voltage = ");
+  Serial.print(sensorVoltage);
+  Serial.println(" V");
+  if (sensorVoltage > 2.53) {
+    servo.write(0);
+  }
+  else {
+    servo.write(90);
+  }
+  lcd.setCursor(0, 0);
+  int hours = seconds/3600;
+  int minutes = seconds/60;
+  if (hours < 10) { 
+    lcd.print(0); 
+  }  
+  lcd.print(hours);
+  lcd.print(":");
+  if (minutes < 10) {
+    lcd.print(0);
+  }
+  lcd.print(minutes);
+  int svetValue = analogRead(A0);
+  bool temno;
+  if (svetValue < 500) temno = true;
+  else temno = false;
+  if ((hours >= 7 && hours < 9) || (temno && hours < 22)) {
+      digitalWrite(led, HIGH);
+  }
+  else {
+      digitalWrite(led, LOW);
+  }
+  if (hours == 8 && minutes <= 5) {
+    digitalWrite(buzzer, HIGH);
+    delay(100);
+    digitalWrite(buzzer, LOW);
+  }
+  delay(1000);
+  ++seconds;
+  seconds %= 86400; 
+}
